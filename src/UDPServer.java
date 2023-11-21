@@ -78,7 +78,6 @@ public class UDPServer {
             int num2 = Integer.parseInt(splitMath[2].trim());
             int result = calculateMath(num1, operation, num2);
             System.out.println("From " + user + "\t \t" + num1 + operation + num2);
-            //System.out.println("From: " + user + "\n" + num1 + operation + num2 + "\t" + LocalDateTime.now().format(formatter));
             logEntry currentEntry = new logEntry(currentUser, num1 + operation + num2, timeStamp);
             log.add(currentEntry);
             //System.out.println(currentEntry);
@@ -155,8 +154,6 @@ public class UDPServer {
 
         @Override
         public String toString() {
-            //return "logEntry\t" + "user: " + client.username + "\t message: " + message + "\t time: " + timeStamp;
-            //return String.format("logEntry\tuser: %s\tmessage: %s\ttime: %s", client.username, message, timeStamp);
             return String.format("%-10s%-25s%-40s%-30s", "logEntry", "user: " + client.username, "message: " + message, "time: " + timeStamp);
 
         }
