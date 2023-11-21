@@ -3,133 +3,168 @@ import java.net.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class UDPServer {
-    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    public static connection findClient(int port){
+    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
+    private static List<Connection> clients = new ArrayList<>();
+    private static List<logEntry> log = new ArrayList<>();
+    private static DatagramSocket serverSocket;
+    private static int connectionCounter;
+    public static void main(String[] args) throws Exception {
+        createServerSocket();
+        while (true){
+            DatagramPacket receivePacket = receivePacket();
+            unpackPacket(receivePacket);
+            if (connectionCounter == 0){
+                System.out.println("\n\nPRINTING SERVER LOG\n-------------------");
+                for (int i = 0; i < log.size(); i++){
+                    System.out.println(log.get(i));
+                }
+            }
+        }
+    }
+    private static void createServerSocket() throws SocketException{
+        serverSocket = new DatagramSocket(9876);
+    }
+    private static DatagramPacket receivePacket() throws IOException {
+        byte [] receiveData = new byte[1024];
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        serverSocket.receive(receivePacket);
+        return receivePacket;
+    }
+    private static void unpackPacket(DatagramPacket packet){
+        LocalDateTime receiveTimeStamp = LocalDateTime.now();
+        String sentence = new String(packet.getData());
+        String[] splitType = sentence.split("\\|");
+        String messageType = splitType[0].trim();
+        String replyMessage;
+        switch (messageType){
+            case "join":
+                replyMessage = join(splitType, packet.getPort(),receiveTimeStamp);
+                break;
+            case "math":
+                replyMessage = math(splitType, packet.getPort(), receiveTimeStamp);
+                break;
+            case "end":
+                replyMessage = end(packet.getPort(), receiveTimeStamp);
+                break;
+            default:
+                replyMessage = "you done goofed";
+        }
+        sendResponse(replyMessage, packet.getAddress(), packet.getPort());
+
+    }
+    private static String join(String[] splitType, int port, LocalDateTime timeStamp) {
+        String user = splitType[1].trim();
+        Connection newClient = new Connection(timeStamp);
+        newClient.username = user;
+        newClient.portNumber = port;
+        clients.add(newClient);
+        logEntry currentEntry = new logEntry(newClient, "user started session", timeStamp);
+        log.add(currentEntry);
+        System.out.println("New user: " + user);
+        connectionCounter++;
+        return "Welcome, " + user;
+    }
+    private static String math(String[] splitType, int port, LocalDateTime timeStamp){
+        Connection currentUser = findClient(port);
+        String user = currentUser.getUsername();
+
+        try {
+            String [] splitMath = splitType[1].split(" ");
+            int num1 = Integer.parseInt(splitMath[0].trim());
+            String operation = splitMath[1].trim();
+            int num2 = Integer.parseInt(splitMath[2].trim());
+            int result = calculateMath(num1, operation, num2);
+            System.out.println("From " + user + "\t \t" + num1 + operation + num2);
+            //System.out.println("From: " + user + "\n" + num1 + operation + num2 + "\t" + LocalDateTime.now().format(formatter));
+            logEntry currentEntry = new logEntry(currentUser, num1 + operation + num2, timeStamp);
+            log.add(currentEntry);
+            //System.out.println(currentEntry);
+            return num1 + operation + num2 + "=" + result;
+        }
+        catch (Exception e) {
+            return "Error";
+        }
+    }
+    private static String end(int port, LocalDateTime timeStamp){
+        Connection currentUser = findClient(port);
+        currentUser.endTime = timeStamp;
+        log.add(new logEntry(currentUser, "user terminated session", timeStamp));
+        System.out.println("Ending session with " + currentUser.username + "\t" + currentUser.endTime.format(formatter));
+        connectionCounter--;
+        return "end|terminating session";
+    }
+    private static void sendResponse(String message, InetAddress IPAddress, int port){
+        try {
+            byte[] sendData = message.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,IPAddress, port);
+            serverSocket.send(sendPacket);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private static int calculateMath(int num1, String operation, int num2) throws Exception {
+        switch (operation) {
+            case "+":
+                return num1 + num2;
+            case "-":
+                return num1 - num2;
+            case "*":
+                return num1 * num2;
+            case "/":
+                return num1 / num2;
+            case "%":
+                return num1 % num2;
+            default:
+                throw new Exception("Invalid");
+        }
+    }
+    private static Connection findClient(int port){
         for (int i = 0; i < clients.size(); i++){
-            if (clients.get(i).getPortNumber() == port){
+            if (clients.get(i).getPortNumber() == port) {
                 return clients.get(i);
             }
         }
         return null;
     }
-    public static class connection{
-        public int getPortNumber() {
-            return portNumber;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
+    public static class Connection {
         int portNumber;
         String username;
         LocalDateTime startTime;
         LocalDateTime endTime;
-        public connection(LocalDateTime start) {
+
+
+        public Connection(LocalDateTime start) {
             this.startTime = start;
         }
 
+        public int getPortNumber() {
+            return portNumber;
+        }
+        public String getUsername(){
+            return username;
+        }
     }
-    private static List<connection> clients = new ArrayList<>();
+    public static class logEntry{
+        Connection client;
+        String message;
+        LocalDateTime timeStamp;
 
-    public static void main(String args[]) throws Exception {
-        DatagramSocket serverSocket = new DatagramSocket(9876);
-        byte[] receiveData = new byte[1024];
-        byte[] sendData = new byte[1024];
-        String user;
+        @Override
+        public String toString() {
+            //return "logEntry\t" + "user: " + client.username + "\t message: " + message + "\t time: " + timeStamp;
+            //return String.format("logEntry\tuser: %s\tmessage: %s\ttime: %s", client.username, message, timeStamp);
+            return String.format("%-10s%-25s%-40s%-30s", "logEntry", "user: " + client.username, "message: " + message, "time: " + timeStamp);
 
-        while(true) {
-            System.out.println(LocalDateTime.now());
-            DatagramPacket receiveMathPacket = new DatagramPacket(receiveData, receiveData.length);
-            serverSocket.receive(receiveMathPacket);
-            InetAddress IPAddress = receiveMathPacket.getAddress();
-            int port = receiveMathPacket.getPort();
-            String sentence = new String(receiveMathPacket.getData());
+        }
 
-            String [] splitType = sentence.split("\\|");
-            String messageType = splitType[0];
-            messageType = messageType.trim();
-            //System.out.println(messageType);
-            String replyMessage = null;
-            switch (messageType){
-                case "join":
-                    connection newClient = new connection(LocalDateTime.now());
-                    //clients.add(new connection(LocalDateTime.now()));
-                    user = splitType[1];
-                    user = user.trim();
-                    newClient.username = user;
-                    newClient.portNumber = port;
-                    clients.add(newClient);
-                    System.out.println(user + " has joined \t" + LocalDateTime.now().format(formatter));
-                    replyMessage = messageType + "|" + "Welcome, " + user;
-                    break;
-                case "math":
-                    String operation;
-                    connection currentUser = findClient(port);
-                    user = currentUser.getUsername();
-                    try{
-                        //System.out.println(LocalDateTime.now());
-                        // System.out.println("in the try");
-                        String [] splitMath = splitType[1].split(" ");
-                        // System.out.println("did the spliteroony");
-                        splitMath[0] = splitMath[0].trim();
-                        System.out.println("trim 0: " + splitMath[0]);
-                        splitMath[1] = splitMath[1].trim();
-                        System.out.println("trim 1: " + splitMath[1]);
-                        splitMath[2] = splitMath[2].trim();
-                        System.out.println("trim 2: " + splitMath[2]);
-                        int num1 = Integer.parseInt(splitMath[0]);
-                        //  System.out.println("parsed num1");
-                        operation = splitMath[1];
-                        // System.out.println("set op");
-                        int num2 = Integer.parseInt(splitMath[2]);
-                        // System.out.println("parsed num2");
-                        int result = 0;
-                        // System.out.println("into the switch");
-
-                        switch (operation) {
-                            case "+":
-                                result = num1 + num2;
-                                break;
-                            case "-":
-                                result = num1 - num2;
-                                break;
-                            case "*":
-                                result = num1 * num2;
-                                break;
-                            case "/":
-                                result = num1 / num2;
-                                break;
-                            case "%":
-                                result = num1 % num2;
-                                break;
-                            default:
-                                throw new Exception("You done goofed");
-                        }
-                        System.out.println("From: " + user + "\n" + num1 + operation + num2 + "\t" + LocalDateTime.now().format(formatter));
-                        String answer = Integer.toString(result);
-                        replyMessage = num1 + operation + num2 + "=" + answer;
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                    break;
-                case "end":
-                    replyMessage = messageType + "|" + "terminating session";
-                    currentUser = findClient(port);
-                    System.out.println("ending session with " + currentUser.username + "\t" + LocalDateTime.now().format(formatter));
-                    currentUser.endTime = LocalDateTime.now();
-            }
-            sendData = replyMessage.getBytes();
-            DatagramPacket sendpacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
-            //System.out.println("sending " + answer + " to port num " + port);
-            serverSocket.send(sendpacket);
-            for (int i = 0; i < splitType.length; i++){
-                splitType[i] = null;
-            }
+        public logEntry(Connection client, String message, LocalDateTime timeStamp) {
+            this.client = client;
+            this.message = message;
+            this.timeStamp = timeStamp;
         }
     }
 }
