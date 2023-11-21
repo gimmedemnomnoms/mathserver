@@ -49,6 +49,7 @@ public class UDPClient {
             System.out.println("Enter a simple math problem in the format 'a + b'");
             String sentence = inFromUser.readLine();
             String addheader = messageType + sentence;
+            System.out.println("sending: " + addheader);
             sendData = addheader.getBytes();
             DatagramPacket sendMathPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
             clientSocket.send(sendMathPacket);

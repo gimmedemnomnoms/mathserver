@@ -77,11 +77,11 @@ public class UDPServer {
                         String [] splitMath = splitType[1].split(" ");
                         // System.out.println("did the spliteroony");
                         splitMath[0] = splitMath[0].trim();
-                        // System.out.println("trim 0: " + splitMath[0]);
+                        System.out.println("trim 0: " + splitMath[0]);
                         splitMath[1] = splitMath[1].trim();
-                        // System.out.println("trim 1: " + splitMath[1]);
+                        System.out.println("trim 1: " + splitMath[1]);
                         splitMath[2] = splitMath[2].trim();
-                        // System.out.println("trim 2: " + splitMath[2]);
+                        System.out.println("trim 2: " + splitMath[2]);
                         int num1 = Integer.parseInt(splitMath[0]);
                         //  System.out.println("parsed num1");
                         operation = splitMath[1];
@@ -127,6 +127,9 @@ public class UDPServer {
             DatagramPacket sendpacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
             //System.out.println("sending " + answer + " to port num " + port);
             serverSocket.send(sendpacket);
+            for (int i = 0; i < splitType.length; i++){
+                splitType[i] = null;
+            }
         }
     }
 }
