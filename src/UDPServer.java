@@ -13,6 +13,7 @@ public class UDPServer {
     private static DatagramSocket serverSocket;
     private static int connectionCounter;
     public static void main(String[] args) throws Exception {
+        writeToLog("--------------------\nServer starting");
 
 
         createServerSocket();
@@ -24,6 +25,30 @@ public class UDPServer {
                 for (int i = 0; i < log.size(); i++){
                     System.out.println(log.get(i));
                 }
+            }
+        }
+
+    }
+    private static void writeToLog(String writeThis) {
+        BufferedWriter writer = null;
+        try {
+            // Create the file if it doesn't exist
+            FileWriter fileWriter = new FileWriter(LOG_FILENAME, true);
+            writer = new BufferedWriter(fileWriter);
+
+            // Write the provided log entry to the file
+            writer.write(writeThis);
+            writer.newLine();  // Add a newline for better readability between entries
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // Close the writer in a finally block to ensure it gets closed
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
