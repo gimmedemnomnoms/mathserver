@@ -6,7 +6,7 @@ public class UDPClient {
     private InetAddress IPAddress;
     private int serverPort = 8888;
 
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         UDPClient client = new UDPClient();
         client.createClientSocket();
         client.joinServer();
@@ -47,6 +47,9 @@ public class UDPClient {
         }
     }
     private void endSession() throws IOException {
+        BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("Press any key to terminate program.");
+        inFromUser.readLine();
         sendPacket("end|");
         clientSocket.close();
     }
