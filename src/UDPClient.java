@@ -4,7 +4,7 @@ import java.net.*;
 public class UDPClient {
     private DatagramSocket clientSocket;
     private InetAddress IPAddress;
-    private int serverPort = 9876;
+    private int serverPort = 8888;
 
     public static void main(String args[]) throws Exception {
         UDPClient client = new UDPClient();

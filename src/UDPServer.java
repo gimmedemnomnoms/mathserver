@@ -6,12 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UDPServer {
+    private static final String LOG_FILENAME = "serverlog.txt";
     static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
     private static List<Connection> clients = new ArrayList<>();
     private static List<logEntry> log = new ArrayList<>();
     private static DatagramSocket serverSocket;
     private static int connectionCounter;
     public static void main(String[] args) throws Exception {
+
+
         createServerSocket();
         while (true){
             DatagramPacket receivePacket = receivePacket();
@@ -25,7 +28,7 @@ public class UDPServer {
         }
     }
     private static void createServerSocket() throws SocketException{
-        serverSocket = new DatagramSocket(9876);
+        serverSocket = new DatagramSocket(8888);
     }
     private static DatagramPacket receivePacket() throws IOException {
         byte [] receiveData = new byte[1024];
@@ -162,6 +165,32 @@ public class UDPServer {
             this.client = client;
             this.message = message;
             this.timeStamp = timeStamp;
+            writeToLog();
         }
+        private void writeToLog() {
+            BufferedWriter writer = null;
+            try {
+                // Create the file if it doesn't exist
+                FileWriter fileWriter = new FileWriter(LOG_FILENAME, true);
+                writer = new BufferedWriter(fileWriter);
+
+                // Write log entry details to the file
+                writer.write(this.toString());
+                writer.newLine();  // Add a newline for better readability between entries
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                // Close the writer in a finally block to ensure it gets closed
+                try {
+                    if (writer != null) {
+                        writer.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
+
 }
